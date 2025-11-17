@@ -1,0 +1,164 @@
+[build-system]
+# pip 25.3 introduced backwards incompatible changes
+#     AttributeError: 'InstallRequirement' object has no attribute 'use_pep517'
+#     ref: https://github.com/jazzband/pip-tools/issues/2252
+requires = ["hatchling", "pip<25.3"]
+build-backend = "hatchling.build"
+
+[project]
+name = "amzn-hyperpod-checkpointless-training"
+dynamic = ["version"]
+description = "Hyperpod Checkpointless Training Fault Controller"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "NVIDIA Corporation" },
+    { name = "Amazon Corporation" },
+]
+dependencies = [
+    "torch>=2.3.0",
+    "psutil>=6.0.0",
+    "pip<25.3", # pip 25.3 introduced backwards incompatible changes
+]
+
+# https://hatch.pypa.io/latest/version/
+[tool.hatch.version]
+source = "code"
+path = "src/hyperpod_checkpointless_training/__version__.py"
+
+[tool.hatch.build]
+directory = "build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/hyperpod_checkpointless_training"]
+
+[tool.hatch.env]
+requires = [ "hatch-pip-compile" ]
+
+[tool.hatch.envs.default]
+type = "virtual"
+python = "3.12"
+dependencies = [
+    "amzn-hyper-pod-elastic-agent",
+    "megatron-core==0.13.1",
+    "nemo-toolkit==2.0",
+    "torch==2.6.0",
+    "psutil==7.0.0",
+    "cryptography==43.0.1",
+    "pathlib_abc==0.3.1",
+    "pytorch-lightning",
+    "tenacity",
+    "pytest",
+    "pytest-cov",
+    "matplotlib==3.10.1",
+    "lightning==2.5.0",
+    "IPython==9.0.2",
+    "hatchling",
+    "einops==0.8.1",
+    "viztracer",
+    "cachetools",
+    "fiddle",
+    "libcst==1.7.0", # 1.8.0 released on 2025/5/27 requires Rust to rebuild the wheel
+    "cloudpickle",
+    "xxhash",
+    "boto3==1.37.23",
+    "hydra-core",
+    "torchdata==0.7.1",
+    "transformers==4.53.0",
+    "wrapt",
+    "wget",
+    "onnx==1.17.0",
+    "contourpy==1.3.1",
+    "regex<2025.7.29",
+    "pyarrow<20.0.0",
+    "sentencepiece==0.2.0",
+    "psutil>=6.0.0",
+    "numpy<2.3.0",
+    "build",
+    "pip<25.3", # pip 25.3 introduced backwards incompatible changes
+]
+
+[tool.hatch.envs.build-tools]
+python = "3.12"
+detached = true
+skip-install = true
+dependencies = [
+    "hatch",
+    "hatch-pip-compile",
+    "click<8.3.0", # latest click (8.3.0) breaks Hatch (https://sage.amazon.dev/posts/2005943#2005960)
+    "pip<25.3", # pip 25.3 introduced backwards incompatible changes
+]
+
+[tool.pytest.ini_options]
+addopts = [
+    "--durations=5",
+    "--color=yes",
+]
+testpaths = [ "tests" ]
+
+[tool.coverage.paths]
+"hyperpod_checkpointless_training" = ["src/hyperpod_checkpointless_training", "**/site-packages/hyperpod_checkpointless_training"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "no cov",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+show_missing = true
+omit = [
+    "*/elastic/*",
+    "*/tools/*",
+    "*/nemo_plugins/abort.py",
+    "*/nemo_plugins/opt_patches.py",
+    "*__version__*",
+    "*/nemo_plugins/*",
+    # skip encryption files as aws_encryption_sdk is not available, so coverage does not properly run
+    "src/hyperpod_checkpointless_training/dataloader/encryption/*",
+]
+
+[tool.coverage.xml]
+output = "private/brazil-documentation/coverage/coverage.xml"
+
+[tool.coverage.html]
+directory = "private/brazil-documentation/coverage/"
+
+[tool.hatch.envs.default.scripts]
+typing = [
+    "mkdir -p .mypy_cache",
+    "mypy --install-types --non-interactive src/hyperpod_checkpointless_training tests"
+]
+
+update = [ "hatch-pip-compile --upgrade --all" ]
+
+release = [
+    "mkdir -p brazil-documentation/coverage",
+    "pytest tests/inprocess/unit_test --cov=src/hyperpod_checkpointless_training/inprocess/ --cov-report=xml:private/brazil-documentation/coverage/coverage.xml --cov-report=html:private/brazil-documentation/coverage/",
+    "pytest tests/dataloader --cov-append --cov=src/hyperpod_checkpointless_training/dataloader/ --cov-report=xml:private/brazil-documentation/coverage/coverage.xml --cov-report=html:private/brazil-documentation/coverage/",
+    "pytest tests/nemo_plugins/unit_test --cov-append --cov=src/hyperpod_checkpointless_training/nemo_plugins/ --cov-report=xml:private/brazil-documentation/coverage/coverage.xml --cov-report=html:private/brazil-documentation/coverage/",
+    "rm -rf \\<Mock*",
+    "mkdir -p build/examples && cp -r examples build/examples",
+]
+
+[[tool.hatch.envs.hatch-test.matrix]]
+python = ["python3.12"]
+
+# PeruHatch repository and package locking plugin
+[tool.hatch.env.collectors.custom]
+path = ".hatch/hatch_plugin.py"
+disable_lockfile_update_on_build_fleet = "true"
+
+[tool.hatch.envs.hatch-test]
+dependencies = [
+    "amzn-hyper-pod-elastic-agent",
+    "megatron-core",
+    "nemo_toolkit",
+    "aws_encryption_sdk",
+    "aws_cryptographic_material_providers",
+    "pathlib_abc==0.3.1",
+    "fiddle",
+    "viztracer",
+    "wrapt",
+    "wget",
+    "pip<25.3", # pip 25.3 introduced backwards incompatible changes
+]

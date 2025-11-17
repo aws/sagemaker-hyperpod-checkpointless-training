@@ -1,0 +1,42 @@
+'brazil_package_spec@1.0'
+
+common::{
+  name: "FaradayFaultController",
+  major_version: "1.0",
+
+  dependencies: {
+    default_closure: run,
+
+    closures: {
+      run: public::{
+        include: [self],
+      },
+    },
+
+  build_after: [
+    ]
+  },
+  build: {
+    command: "peru-hatch",
+
+    env: {
+      PATH: [
+        (farm "PeruHatch" "bin"),
+        (env PATH),
+      ],
+    },
+
+    sequences: [
+      {
+        name: 'hyperpod_engines_faraday_sequence',
+        strategy: commit,
+      },
+    ],
+
+    outputs: {
+      public_dir: "./build",
+      private_dir: "./private",
+      cleaned: [],
+    }
+  },
+}
