@@ -1,0 +1,67 @@
+defaults:
+  - llama3_70b_finetune
+  - _self_
+
+callbacks: 
+  - _target_: nemo.utils.exp_manager.TimingCallback
+  - _target_: nemo.lightning.pytorch.callbacks.GarbageCollectionCallback
+    gc_interval_train: 5
+    gc_interval_val: 5 
+  - _target_: nemo.lightning.pytorch.callbacks.megatron_comm_overlap.MegatronCommOverlapCallback
+    tp_comm_overlap: False
+  - _target_: hyperpod_checkpointless_training.nemo_plugins.fault_injection.HPFaultInjectionCallback
+    test_fault_config:
+      fault_type: "ipr"
+      fault_prob_after_bwd: 0
+      fault_prob_between_lock: 0
+      fault_prob_during_fwd: 0
+      fault_prob_during_bwd: 0
+      fault_prob_random: 1
+      fault_ranks: [8]
+      steps_before_fault: 30
+  - _target_: hyperpod_checkpointless_training.nemo_plugins.callbacks.CheckpointlessCallback # checkpointless changes.
+    enable_inprocess: true
+    enable_checkpointless: true
+    enable_checksum: True
+    clean_tensor_hook : true
+  - _target_: hyperpod_checkpointless_training.nemo_plugins.progress_bar_callback.HCTProgressBar
+    refresh_rate: 1
+  - _target_: hyperpod_checkpointless_training.nemo_plugins.datamodule_epoch_callback.DataModuleEpochCallback
+
+
+
+log:
+  _target_: nemo.lightning.nemo_logger.NeMoLogger
+  name: 'llama3_70b_lora_finetune-checkpointless'
+  log_dir: ${log_dir}                                                                           
+  ckpt:
+    _target_: nemo.lightning.pytorch.callbacks.model_checkpoint.ModelCheckpoint
+    monitor: "step"  # Monitor using step
+    mode: "max"  # keep checkpoints with higher step numbers
+    save_last: True
+    save_top_k: 2
+    every_n_train_steps: 20
+    # specify the directory to write.
+    dirpath : ${log_dir}
+    filename: '{model_name}--{step}-{consumed_samples}'
+    save_weights_only: False  # Save full checkpoint including optimizer state
+    save_optim_on_train_end: True
+  tensorboard:
+    _target_: lightning.pytorch.loggers.TensorBoardLogger  
+    save_dir: 'tb_logs'
+    name: 'llama3_70b_lora_finetune-checkpointless'                                                                                                                                       
+  wandb: null
+
+resume:
+  _target_: hyperpod_checkpointless_training.nemo_plugins.resume.CheckpointlessAutoResume # Checkpointless changes.
+  restore_config:
+    _target_: nemo.lightning.RestoreConfig
+    path: "<model_weight_path_here>"
+    load_artifacts: false
+  resume_from_directory: ${log.ckpt.dirpath}
+  resume_if_exists: true
+  resume_past_end: true
+  resume_ignore_no_checkpoint: true 
+
+strategy:
+  num_distributed_optimizer_instances: 2 # checkpointless changes.

@@ -1,0 +1,19 @@
+defaults:
+  - _self_
+
+max_length: &max_length
+
+model:
+  # Model parallelism settings
+  tensor_model_parallel_size: 2
+  pipeline_model_parallel_size: 2
+  virtual_pipeline_model_parallel_size: null
+  pipeline_model_parallel_split_rank: 0
+  context_parallel_size: 1
+  
+  # Batch size settings
+  micro_batch_size: 1
+  global_batch_size: 96
+
+data:
+  data_providers: null
