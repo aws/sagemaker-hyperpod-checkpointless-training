@@ -1,0 +1,14 @@
+build
+dist
+*.egg-info
+__pycache__
+cupti_module.*.so
+.pytest_cache
+.coverage*
+/.hatch
+*.iml
+/nemo_experiments/*
+/outputs
+.crux_dry_run_build
+.DS_Store
+brazil.ion
