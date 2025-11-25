@@ -255,7 +255,7 @@ pillow==12.0.0
     # via
     #   matplotlib
     #   tensorboard
-pip==25.2
+pip==25.3
     # via
     #   hatch.envs.default
     #   amzn-hyper-pod-elastic-agent

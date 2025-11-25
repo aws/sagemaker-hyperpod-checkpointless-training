@@ -2,7 +2,7 @@
 # pip 25.3 introduced backwards incompatible changes
 #     AttributeError: 'InstallRequirement' object has no attribute 'use_pep517'
 #     ref: https://github.com/jazzband/pip-tools/issues/2252
-requires = ["hatchling", "pip<25.3"]
+requires = ["hatchling", "pip<25.4"]
 build-backend = "hatchling.build"
 
 [project]
@@ -18,7 +18,7 @@ authors = [
 dependencies = [
     "torch>=2.3.0",
     "psutil>=6.0.0",
-    "pip<25.3", # pip 25.3 introduced backwards incompatible changes
+    "pip<25.4", # pip 25.3 introduced backwards incompatible changes
 ]
 
 # https://hatch.pypa.io/latest/version/
@@ -75,7 +75,7 @@ dependencies = [
     "psutil>=6.0.0",
     "numpy<2.3.0",
     "build",
-    "pip<25.3", # pip 25.3 introduced backwards incompatible changes
+    "pip<25.4", # pip 25.3 introduced backwards incompatible changes
 ]
 
 [tool.hatch.envs.build-tools]
@@ -86,7 +86,7 @@ dependencies = [
     "hatch",
     "hatch-pip-compile",
     "click<8.3.0", # latest click (8.3.0) breaks Hatch (https://sage.amazon.dev/posts/2005943#2005960)
-    "pip<25.3", # pip 25.3 introduced backwards incompatible changes
+    "pip<25.4", # pip 25.3 introduced backwards incompatible changes
 ]
 
 [tool.pytest.ini_options]
@@ -160,5 +160,5 @@ dependencies = [
     "viztracer",
     "wrapt",
     "wget",
-    "pip<25.3", # pip 25.3 introduced backwards incompatible changes
+    "pip<25.4", # pip 25.3 introduced backwards incompatible changes
 ]
