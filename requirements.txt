@@ -4,7 +4,7 @@
 # - amzn-hyper-pod-elastic-agent
 # - megatron-core==0.13.1
 # - nemo-toolkit==2.0
-# - torch==2.6.0
+# - torch==2.8.0
 # - psutil==7.0.0
 # - cryptography==43.0.1
 # - pathlib_abc==0.3.1
@@ -374,7 +374,7 @@ threadpoolctl==3.6.0
     # via scikit-learn
 tokenizers==0.21.4
     # via transformers
-torch==2.6.0
+torch==2.8.0
     # via
     #   hatch.envs.default
     #   amzn-hyper-pod-elastic-agent
