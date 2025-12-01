@@ -1,0 +1,155 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You
+# may not use this file except in compliance with the License. A copy of
+# the License is located at
+#
+#     http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is
+# distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
+# ANY KIND, either express or implied. See the License for the specific
+# language governing permissions and limitations under the License.
+
+apiVersion: sagemaker.amazonaws.com/v1
+kind: HyperPodPyTorchJob
+metadata:
+  labels:
+    app.kubernetes.io/name: hyperpod
+    app.kubernetes.io/managed-by: kustomize
+  name: &jobname username-gpt-120b-checkpointless
+  annotations:
+    user: &user username
+    region: &region ap-south-1
+    workspace: &workspace /data/username/
+    output_dir: &output_dir /data/username/output
+    postfix: &postfix checkpointless
+spec:
+  nprocPerNode: "8"
+  replicaSpecs:
+    - name: '16-node'
+      replicas: 16
+      template:
+        spec:
+          hostNetwork: True
+          nodeSelector:
+            beta.kubernetes.io/instance-type: ml.p5.48xlarge
+          containers:
+            - name: ptjob
+              image: ""
+              imagePullPolicy: Always
+              securityContext:
+                privileged: true
+              ports:
+                - containerPort: 8080
+                - containerPort: 9000
+                - containerPort: 9001
+                - containerPort: 9002
+                - containerPort: 9003
+                - containerPort: 9004
+                - containerPort: 9005
+              resources:
+                limits:
+                  nvidia.com/gpu: 8
+                  hugepages-2Mi: 5120Mi
+                  vpc.amazonaws.com/efa: 32
+                requests:
+                  nvidia.com/gpu: 8
+                  hugepages-2Mi: 5120Mi
+                  vpc.amazonaws.com/efa: 32
+                  memory: 32000Mi
+              env:
+                - name: JOB_NAME
+                  value: *jobname
+                - name: JOB_NAME_POSTFIX
+                  value: *postfix
+                - name: WORKSPACE
+                  value: *workspace
+                - name: OUTPUT_DIR
+                  value: *output_dir
+                - name: USER
+                  value: *user
+                - name: CONFIG_PATH
+                  value: "/opt/amazon/examples/gpt_oss/config/"
+                - name: CONFIG_NAME
+                  value: "gpt_oss_120b_full_finetune_checkpointless.yaml"
+                - name: CHECKPOINT_DIR
+                  value: /data/checkpoints/$(USER)/gpt_oss_full_finetune/$(JOB_NAME)/$(JOB_NAME_POSTFIX)
+                - name: INPROCESS_RESTART
+                  value: "1"
+                - name: INPROCESS_RESTART_TIMEOUT
+                  value: "1800"
+                - name: HPWRAPPER_LOG_LEVEL
+                  value: info
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: NODE_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+                - name: HP_LOG
+                  value: "$(OUTPUT_DIR)/logs/$(JOB_NAME)/$(JOB_NAME_POSTFIX)"
+                - name: LOGDIR
+                  value : "$(OUTPUT_DIR)/logs/$(JOB_NAME)/$(JOB_NAME_POSTFIX)"
+                - name: ENTRYPOINT
+                  value: "/opt/amazon/examples/gpt_oss/gpt_oss_120b_full_finetune_checkpointless.py"
+                - name: ENABLE_VIZTRACER
+                  value : "0"
+                - name: VIZTRACER_NUM_STEPS_TO_TRACE
+                  value : "15"
+                - name: TRACING_PROFILES_PATH
+                  value: /data/checkpoints/$(USER)/gpt_oss_full_finetune/viztracer/
+              command: ["/bin/sh"]
+              args:
+                - "-c"
+                - |
+                  mkdir -p "${LOGDIR}" && \
+                  export GLOO_SOCKET_IFNAME=${GLOO_SOCKET_IFNAME:-$(ip -o -4 route show to default | awk '{print $5}')} && \
+                  export MASTER_ADDR=${MASTER_ADDR:-$(ip addr | grep -A 2 "^.*: eth[0-9]" | grep "inet 10\." | awk '{print $2}' | cut -d'/' -f1)} && \
+                  cd  "${FCTRL_ROOT}/" && \
+                  ln -sf /opt/aws-ofi-nccl/lib/libnccl-net-ofi.so /opt/aws-ofi-nccl/lib/libnccl-net-aws-ofi.so && \
+
+                  # Rootless
+                  export HPCT_USE_ROOTLESS=1 && \
+                  sysctl -w net.ipv4.ip_local_port_range="20000 65535" && \
+
+                  hyperpodrun --nproc_per_node=8 \
+                    --log_dir "${LOGDIR}" \
+                    --tee 3 \
+                    --redirect 3 \
+                    --inprocess-restart \
+                    --server-log-level "warning" \
+                    "${ENTRYPOINT}" \
+                    --config-path="${CONFIG_PATH}" \
+                    --config-name="${CONFIG_NAME}" \
+                    trainer.devices=8 \
+                    trainer.num_nodes="${NNODES}" \
+                    trainer.max_steps=50 \
+                    log.ckpt.save_last=False \
+                    ++callbacks.3.test_fault_config.fault_type=ipr \
+                    ++callbacks.3.test_fault_config.fault_prob_after_bwd=0 \
+                    ++callbacks.3.test_fault_config.fault_prob_between_lock=1 \
+                    ++callbacks.3.test_fault_config.fault_prob_during_fwd=0 \
+                    ++callbacks.3.test_fault_config.fault_prob_during_bwd=0 \
+                    ++callbacks.3.test_fault_config.fault_prob_random=0 \
+                    ++callbacks.3.test_fault_config.fault_ranks='[8]' \
+                    ++callbacks.3.test_fault_config.steps_before_fault=10 \
+                    resume.restore_config.path='<path_to_pretrained_weights>' \
+                    dataset.dataset_path='<path_to_dataset>' \
+                    data.global_batch_size=16 2>&1 | tee "${LOGDIR}/train-${POD_NAME}.log"
+              volumeMounts:
+                - name: persistent-storage
+                  mountPath: /data
+                - name: dshm
+                  mountPath: /dev/shm
+          volumes:
+            - name: persistent-storage
+              persistentVolumeClaim:
+                claimName: fsx-claim
+            - name: dshm
+              emptyDir:
+                medium: Memory
+  runPolicy:
+    cleanPodPolicy: "All"
