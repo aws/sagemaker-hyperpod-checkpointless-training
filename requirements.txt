@@ -201,7 +201,7 @@ multidict==6.7.0
     # via
     #   aiohttp
     #   yarl
-nemo-toolkit==2.0.0
+nemo-toolkit==2.6.1
     # via hatch.envs.default
 networkx==3.5
     # via torch
