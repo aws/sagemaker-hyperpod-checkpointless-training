@@ -39,7 +39,7 @@ requires = [ "hatch-pip-compile" ]
 type = "virtual"
 python = "3.12"
 dependencies = [
-    "amzn-hyper-pod-elastic-agent",
+    "hyperpod-elastic-agent",
     "megatron-core==0.13.1",
     "nemo-toolkit==2.0",
     "torch==2.6.0",
@@ -150,7 +150,7 @@ disable_lockfile_update_on_build_fleet = "true"
 
 [tool.hatch.envs.hatch-test]
 dependencies = [
-    "amzn-hyper-pod-elastic-agent",
+    "hyperpod-elastic-agent",
     "megatron-core",
     "nemo_toolkit",
     "aws_encryption_sdk",
