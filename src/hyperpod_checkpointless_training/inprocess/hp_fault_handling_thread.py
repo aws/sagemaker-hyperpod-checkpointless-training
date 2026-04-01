@@ -18,6 +18,8 @@ import threading
 import time
 from typing import Callable, Optional
 
+import torch
+
 from .exception import RankShouldRestart
 from .logger import get_logger
 from .utils import AtomicInt, HPState, async_raise, debug_msg, log_exc
@@ -188,6 +190,11 @@ class HPFaultHandlingThread(threading.Thread):
                 |                           |                           | | New HPFaultHandlingThread
                 V                           V                           V V
         """
+        # Set CUDA device context to match main thread using LOCAL_RANK
+        local_rank = os.environ.get("LOCAL_RANK")
+        if local_rank is not None:
+            torch.cuda.set_device(int(local_rank))
+
         while not self.should_stop.is_set():
             # In our previous design,we want to rely on infrastrcuture to give us haning information.
             # However, this solution may be too slow. Therefore, we want to

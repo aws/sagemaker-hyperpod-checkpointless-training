@@ -123,6 +123,20 @@ class TestHPFaultHandlingThread(unittest.TestCase):
         self.thread.run()
         self.assertTrue(self.thread.should_stop.is_set())
 
+    @patch("hyperpod_checkpointless_training.inprocess.hp_fault_handling_thread.torch.cuda.set_device")
+    @patch.dict(os.environ, {"LOCAL_RANK": "3"})
+    def test_run_sets_cuda_device_from_local_rank(self, mock_set_device):
+        """Test that run() sets CUDA device from LOCAL_RANK env var"""
+        def do_shutdown():
+            time.sleep(0.1)
+            self.thread.shutdown()
+
+        shutdown_thread = threading.Thread(target=do_shutdown)
+        shutdown_thread.start()
+
+        self.thread.run()
+        mock_set_device.assert_called_once_with(3)
+
     def test_do_main_abort(self):
         """Test do_main_abort method"""
         self.thread.do_main_abort()
