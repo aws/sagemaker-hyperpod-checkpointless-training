@@ -251,7 +251,7 @@ pathspec==0.12.1
     # via hatchling
 pexpect==4.9.0
     # via ipython
-pillow==12.0.0
+pillow==12.1.1
     # via
     #   matplotlib
     #   tensorboard
